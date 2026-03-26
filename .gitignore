@@ -130,3 +130,6 @@ dmypy.json
 
 .vscode
 *.swp
+
+# CSV recordings
+*.csv
