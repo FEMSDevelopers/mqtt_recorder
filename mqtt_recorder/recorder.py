@@ -5,6 +5,8 @@ import queue
 import time
 import base64
 import csv
+import json
+from datetime import datetime, timezone
 from tqdm import tqdm
 
 logging.basicConfig(
@@ -87,9 +89,15 @@ class MqttRecorder:
                     else:
                         first_message = False
                     mqtt_payload = decode_payload(row[1], self.__encode_b64)
-                    retain = False if row[3] == 'False' else True
+                    try:
+                        payload_obj = json.loads(mqtt_payload)
+                        if 'ts' in payload_obj:
+                            payload_obj['ts'] = datetime.now(timezone.utc).isoformat()
+                            mqtt_payload = json.dumps(payload_obj)
+                    except (json.JSONDecodeError, TypeError):
+                        pass
                     self.__client.publish(topic=row[0], payload=mqtt_payload,
-                                          qos=int(row[2]), retain=retain)
+                                          qos=int(row[2]), retain=True)
                 logger.info('End of replay')
                 if loop:
                     logger.info('Restarting replay')
