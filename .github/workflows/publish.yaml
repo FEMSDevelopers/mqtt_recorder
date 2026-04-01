@@ -3,7 +3,7 @@ name: Publish
 on:
   push:
     branches:
-      - 'master'
+      - 'main'
 
 env:
   REGISTRY: harbor.fractalems.com
