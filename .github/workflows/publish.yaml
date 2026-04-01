@@ -3,7 +3,10 @@ name: Publish
 on:
   push:
     branches:
-      - 'main'
+      - master
+
+permissions:
+  contents: write
 
 env:
   REGISTRY: harbor.fractalems.com
@@ -16,7 +19,7 @@ jobs:
     environment: DockerArchiveSecrets
     steps:
       - name: Code Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
       - name: Application Version
@@ -35,6 +38,8 @@ jobs:
       - name: Build and push
         uses: docker/build-push-action@v4
         with:
+          context: .
+          file: ./DockerFile
           push: true
           tags: ${{ format('{0}/{1}:{2}', env.REGISTRY, env.REPOSITORY, steps.version.outputs.version_tag) }}
           build-args: |
