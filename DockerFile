@@ -2,8 +2,8 @@ FROM python:3.11-slim
 
 WORKDIR /app
 
-# Install specific version passed at build time
-ARG GITHUB_TAG_VERSION
-RUN pip install mqtt-recorder==${GITHUB_TAG_VERSION}
+COPY . /app
+
+RUN pip install --no-cache-dir .
 
 ENTRYPOINT ["mqtt-recorder"]
