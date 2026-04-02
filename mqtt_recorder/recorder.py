@@ -91,8 +91,12 @@ class MqttRecorder:
                     mqtt_payload = decode_payload(row[1], self.__encode_b64)
                     try:
                         payload_obj = json.loads(mqtt_payload)
+                        now_utc = datetime.now(timezone.utc).isoformat()
                         if 'ts' in payload_obj:
-                            payload_obj['ts'] = datetime.now(timezone.utc).isoformat()
+                            payload_obj['ts'] = now_utc
+                            mqtt_payload = json.dumps(payload_obj)
+                        elif 'TS' in payload_obj:
+                            payload_obj['TS'] = now_utc
                             mqtt_payload = json.dumps(payload_obj)
                     except (json.JSONDecodeError, TypeError):
                         pass
