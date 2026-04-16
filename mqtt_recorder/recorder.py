@@ -69,7 +69,7 @@ class MqttRecorder:
             self.__client.subscribe('#', qos=qos)
         self.__recording = True
 
-    def start_replay(self, loop: bool):
+    def start_replay(self, loop: bool, speed: float = 1.0, max_delay: float = None):
         def decode_payload(payload, encode_b64):
             return base64.b64decode(payload) if encode_b64 else payload
 
@@ -85,7 +85,10 @@ class MqttRecorder:
             while True:
                 for row in tqdm(reader, total=csv_lines, desc='MQTT REPLAY'):
                     if not first_message:
-                        time.sleep(float(row[5]))
+                        delay = float(row[5]) / speed
+                        if max_delay is not None:
+                            delay = min(delay, max_delay)
+                        time.sleep(delay)
                     else:
                         first_message = False
                     mqtt_payload = decode_payload(row[1], self.__encode_b64)

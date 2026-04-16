@@ -1,5 +1,6 @@
 from mqtt_recorder.recorder import MqttRecorder, SslContext
 import argparse
+import threading
 import time
 import json
 import csv
@@ -111,6 +112,28 @@ parser.add_argument(
 )
 
 parser.add_argument(
+    '--speed',
+    type=float,
+    default=1.0,
+    help='Replay speed multiplier (e.g. 2.0 = twice as fast, 0.5 = half speed)'
+)
+
+parser.add_argument(
+    '--max_delay',
+    type=float,
+    default=None,
+    help='Cap inter-message delay to this many seconds (e.g. 5.0 prevents long gaps)'
+)
+
+parser.add_argument(
+    '--command_sim',
+    default=False,
+    action='store_true',
+    help='Enable command simulator during replay. Listens for Fractal/+/CMD commands '
+         'and overrides relevant topic values for 5 minutes.'
+)
+
+parser.add_argument(
     '--qos',
     type=int,
     help='Quality of Service that will be used for subscriptions',
@@ -181,8 +204,20 @@ def main():
         wait_for_keyboard_interrupt()
         recorder.stop_recording()
     elif args.mode == 'replay':
+        if args.command_sim:
+            from mqtt_recorder.command_simulator import CommandSimulator
+            sim = CommandSimulator(
+                host=args.host,
+                port=args.port,
+                client_id=None,
+                username=args.username,
+                password=args.password,
+                ssl_context=sslContext
+            )
+            sim_thread = threading.Thread(target=sim.start, daemon=True)
+            sim_thread.start()
         try:
-            recorder.start_replay(args.loop)
+            recorder.start_replay(args.loop, speed=args.speed, max_delay=args.max_delay)
         except KeyboardInterrupt:
             pass
     else:
