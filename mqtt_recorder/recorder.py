@@ -110,6 +110,9 @@ class MqttRecorder:
                 if loop:
                     logger.info('Restarting replay')
                     time.sleep(1)
+                    csvfile.seek(0)
+                    reader = csv.reader(csvfile)
+                    first_message = True
                 else:
                     break
 

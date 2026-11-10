@@ -7,27 +7,29 @@ Simple cli tool for recording and replaying MQTT messages.
 `pip install mqtt-recorder`
 
 ## Usage
-| Argument               | Description                                              | Required | Default |
-| ---------------------- | -------------------------------------------------------- | -------- | ------- |
-| -h, --help             | Show help                                                |          |         |
-| --host                 | MQTT broker address                                      | x        |         |
-| --port                 | MQTT broker port                                         |          | 1883    |
-| --client_id            | MQTT Client ID                                           |          |         |
-| --mode                 | mode: record/replay                                      | x        |         |
-| --file                 | output/input csv file                                    | x        |         |
-| --loop                 | looping replay                                           |          | false   |
-| --qos                  | Quality of Service that will be used for subscriptions   |          | 0       |
-| --topics               | json file containing selected topics for subscriptions   |          | null    |
-| -t, --topic            | Single topic to subscribe to                             |          | null    |
-| --enable_ssl           | True to enable MQTTs support, False otherwise            |          | False   |
-| --tls_insecure         | If certs is self-generated, change to True               |          | False   |
-| --ca_cert              | Path to the Certificate Authority certificate files      |          | None    |
-| --certfile             | Path to the client certificate                           |          | None    |
-| --keyfile              | Path to the client private key                           |          | None    |
-| --username             | MQTT broker username                                     |          | None    |
-| --password             | MQTT broker password                                     |          | None    |
-| --encode_b64           | True to store message payloads as base64 encoded strings |          | False   |
-| --csv_field_size_limit | CSV field size limit                                     |          | False   |
+| Argument               | Description                                                             | Required | Default |
+| ---------------------- | ----------------------------------------------------------------------- | -------- | ------- |
+| -h, --help             | Show help                                                               |          |         |
+| --host                 | MQTT broker address                                                     | x        |         |
+| --port                 | MQTT broker port                                                        |          | 1883    |
+| --client_id            | MQTT Client ID                                                          |          |         |
+| --mode                 | mode: record/replay                                                     | x        |         |
+| --file                 | output/input csv file                                                   | x        |         |
+| --loop                 | looping replay                                                          |          | false   |
+| --speed                | Replay speed multiplier (e.g. 2.0 = twice as fast, 0.5 = half speed)    |          | 1.0     |
+| --max_delay            | Cap inter-message delay to this many seconds (e.g. 5.0 = max 5s gap)    |          | null    |
+| --qos                  | Quality of Service that will be used for subscriptions                  |          | 0       |
+| --topics               | json file containing selected topics for subscriptions                  |          | null    |
+| -t, --topic            | Single topic to subscribe to                                            |          | null    |
+| --enable_ssl           | true to enable MQTTs support, false otherwise                           |          | false   |
+| --tls_insecure         | If certs is self-generated, change to true                              |          | false   |
+| --ca_cert              | Path to the Certificate Authority certificate files                     |          | null    |
+| --certfile             | Path to the client certificate                                          |          | null    |
+| --keyfile              | Path to the client private key                                          |          | null    |
+| --username             | MQTT broker username                                                    |          | null    |
+| --password             | MQTT broker password                                                    |          | null    |
+| --encode_b64           | true to store message payloads as base64 encoded strings                |          | false   |
+| --csv_field_size_limit | CSV field size limit                                                    |          | false   |
 
 ### Recording
 #### Subscribing to every topic
@@ -46,3 +48,47 @@ Example
 ```
 ### Replaying
 `mqtt-recorder --host localhost --mode replay --file test.csv`
+
+Replay at half speed with long gaps capped at 5 seconds:
+`mqtt-recorder --host localhost --mode replay --file test.csv --speed 0.5 --max_delay 5.0`
+
+Replay twice as fast on a loop:
+`mqtt-recorder --host localhost --mode replay --file test.csv --speed 2.0 --loop true`
+
+### TLS / Certificate Authentication (port 8883)
+To connect to a broker that requires certificate-based authentication:
+
+```
+mqtt-recorder --host your.broker.host --port 8883 --mode replay --file recording.csv \
+  --enable_ssl true \
+  --ca_cert /path/to/ca.crt \
+  --certfile /path/to/client.crt \
+  --keyfile /path/to/client.key
+```
+
+If the broker uses a self-signed certificate, add `--tls_insecure true` to skip hostname verification:
+
+```
+mqtt-recorder --host your.broker.host --port 8883 --mode replay --file recording.csv \
+  --enable_ssl true \
+  --ca_cert /path/to/ca.crt \
+  --certfile /path/to/client.crt \
+  --keyfile /path/to/client.key \
+  --tls_insecure true
+```
+
+The same TLS arguments apply to `--mode record`.
+
+### Merging recordings
+Two CSV recordings can be merged into one using `merge_recordings.py`:
+
+`python merge_recordings.py <existing_csv> <new_csv> <output_csv>`
+
+- `existing_csv` — the reference recording; its time range is preserved
+- `new_csv` — the recording to merge in; its timestamps are remapped to fit the reference time range
+- `output_csv` — the merged output file (generated by the script, not an input)
+
+Example:
+`python merge_recordings.py recording_demo_v0.3.csv pv_topics.csv recording_merged.csv`
+
+The script merges and sorts all rows by timestamp, recalculates inter-message delays for correct playback, and reports any topics present in the new recording that have no match in the existing one.
